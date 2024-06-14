@@ -1,14 +1,18 @@
 #include <WiFi.h>
+#include <HTTPClient.h>
 
-const char* ssid = "UDINUS H.3";
-const char* password = "";
-const char* serverName = "http://192.168.34.242:5000";
+const char* ssid = "nama_wifi_mu";
+const char* password = "password_wifimu";
+const char* serverName = "http://ip-address-mu/post_data";
 
 #define LP 12
 #define LM 13
 #define PIN_AN 33
 
 WiFiClient client;
+
+String data_request;
+
 
 void setup() {
   Serial.begin(9600);
@@ -31,40 +35,28 @@ void loop() {
   } else {
     int sensorValue = analogRead(PIN_AN);
 
-    // Mengirimkan data melalui metode GET
-    if (client.connect(serverName, 5000)) {
-      String getData = "/get_data?data=" + String(sensorValue);
-      client.print(String("GET ") + getData + " HTTP/1.1\r\n" +
-                   "Host: " + serverName + "\r\n" +
-                   "Connection: close\r\n\r\n");
-      while (client.connected()) {
-        String line = client.readStringUntil('\n');
-        if (line == "\r") {
-          Serial.println("Data sent via GET");
-          break;
-        }
-      }
-      client.stop();
-    }
-
-    delay(5000); // Delay 5 detik sebelum mengirimkan data lagi
-
     // Mengirimkan data melalui metode POST
-    if (client.connect(serverName, 5000)) {
-      String postData = "data=" + String(sensorValue);
-      client.print("POST /post_data HTTP/1.1\r\n");
-      client.print("Host: " + String(serverName) + "\r\n");
-      client.print("Content-Type: application/x-www-form-urlencoded\r\n");
-      client.print("Content-Length: " + String(postData.length()) + "\r\n\r\n");
-      client.print(postData);
-      while (client.connected()) {
-        String line = client.readStringUntil('\n');
-        if (line == "\r") {
-          Serial.println("Data sent via POST");
-          break;
-        }
-      }
-      client.stop();
+    if (WiFi.status()== WL_CONNECTED) {
+        WiFiClient client;
+        HTTPClient http;
+
+        http.begin(client, serverName);
+        http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+        
+        
+        data_request = "data=";    
+        data_request += String(sensorValue);       
+
+        int respon = http.POST(data_request);
+
+        Serial.print("HTTP Response code: ");
+        Serial.println(respon);
+
+        http.end();
+     
+    }else{
+        Serial.println("Wifi ga nyambung");
+
     }
 
     delay(5000); // Delay 5 detik sebelum mengirimkan data lagi
